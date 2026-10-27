@@ -1,0 +1,43 @@
+name: Publish PonyExpress capsule
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_url:
+        description: Upstream Git URL to package
+        required: true
+        type: string
+      source_ref:
+        description: Branch, tag, or commit to record in the manifest
+        required: true
+        default: HEAD
+        type: string
+      project_id:
+        description: Stable capsule path name
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install .
+      - run: >-
+          ponyexpress publish
+          --source-url "${{ inputs.source_url }}"
+          --ref "${{ inputs.source_ref }}"
+          --project-id "${{ inputs.project_id }}"
+          --capsule-root "$GITHUB_WORKSPACE"
+      - run: |
+          git config user.name "ponyexpress[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add capsules
+          git commit -m "capsule: ${{ inputs.project_id }} @ ${{ inputs.source_ref }}"
+          git push

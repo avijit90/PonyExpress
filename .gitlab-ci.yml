@@ -1,0 +1,19 @@
+stages:
+  - publish
+
+publish_capsule:
+  image: python:3.11-slim
+  stage: publish
+  when: manual
+  rules:
+    - if: '$SOURCE_URL && $PROJECT_ID'
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends git
+    - python -m pip install .
+  script:
+    - ponyexpress publish --source-url "$SOURCE_URL" --ref "${SOURCE_REF:-HEAD}" --project-id "$PROJECT_ID" --capsule-root "$CI_PROJECT_DIR"
+    - git config user.name "ponyexpress[bot]"
+    - git config user.email "ponyexpress@$CI_SERVER_HOST"
+    - git add capsules
+    - git commit -m "capsule: $PROJECT_ID @ ${SOURCE_REF:-HEAD}"
+    - git push "https://oauth2:${PUSH_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" "HEAD:$CI_COMMIT_REF_NAME"
